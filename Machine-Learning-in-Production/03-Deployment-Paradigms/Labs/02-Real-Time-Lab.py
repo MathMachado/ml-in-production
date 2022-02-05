@@ -15,7 +15,7 @@
 # MAGIC  - Enable MLflow Model Serving for your registered model
 # MAGIC  - Compute predictions in real time for your registered model via a REST API request
 # MAGIC  
-# MAGIC :NOTE: *You need [cluster creation](https://docs.databricks.com/applications/mlflow/model-serving.html#requirements) permissions to create a model serving endpoint. The instructor will either demo this notebook or enable cluster creation permission for the students from the Admin console.*
+# MAGIC <img src="https://files.training.databricks.com/images/icon_note_32.png"> *You need [cluster creation](https://docs.databricks.com/applications/mlflow/model-serving.html#requirements) permissions to create a model serving endpoint. The instructor will either demo this notebook or enable cluster creation permission for the students from the Admin console.*
 
 # COMMAND ----------
 
@@ -118,6 +118,19 @@ instance = tags["browserHostName"]
 
 # COMMAND ----------
 
+# MAGIC %md Enable the endpoint
+
+# COMMAND ----------
+
+import requests
+
+url = f"https://{instance}/api/2.0/mlflow/endpoints/enable"
+
+r = requests.post(url, headers=headers, json={"registered_model_name": model_name})
+assert r.status_code == 200, f"Expected an HTTP 200 response, received {r.status_code}"
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC Next, create a function that takes a single record as input and returns the predicted value from the endpoint.
 
@@ -128,7 +141,7 @@ import requests
 
 def score_model(dataset: pd.DataFrame, model_name: str, token: str, instance: str):
     url = f"https://{instance}/model/{model_name}/1/invocations"
-    data_json = dataset.to_dict(orient='split')
+    data_json = dataset.to_dict(orient="split")
 
     response = <FILL_IN>
 
@@ -150,7 +163,7 @@ single_row_df = pd.DataFrame([[2, 2, 150]], columns=["bathrooms", "bedrooms", "n
 # COMMAND ----------
 
 # MAGIC %md-sandbox
-# MAGIC &copy; 2021 Databricks, Inc. All rights reserved.<br/>
-# MAGIC Apache, Apache Spark, Spark and the Spark logo are trademarks of the <a href="http://www.apache.org/">Apache Software Foundation</a>.<br/>
+# MAGIC &copy; 2022 Databricks, Inc. All rights reserved.<br/>
+# MAGIC Apache, Apache Spark, Spark and the Spark logo are trademarks of the <a href="https://www.apache.org/">Apache Software Foundation</a>.<br/>
 # MAGIC <br/>
-# MAGIC <a href="https://databricks.com/privacy-policy">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use">Terms of Use</a> | <a href="http://help.databricks.com/">Support</a>
+# MAGIC <a href="https://databricks.com/privacy-policy">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use">Terms of Use</a> | <a href="https://help.databricks.com/">Support</a>

@@ -178,28 +178,28 @@ from databricks import feature_store
 
 fs = feature_store.FeatureStoreClient()
 
-help(fs.create_feature_table)
+help(fs.create_table)
 
 # COMMAND ----------
 
 # MAGIC %md #### Create Feature Table
 # MAGIC 
-# MAGIC Next, we can create the Feature Table using the `create_feature_table` method.
+# MAGIC Next, we can create the Feature Table using the `create_table` method.
 # MAGIC 
 # MAGIC This method takes a few parameters as inputs:
 # MAGIC * `name`- A feature table name of the form ``<database_name>.<table_name>``
-# MAGIC * `keys`- The primary key(s). If multiple columns are required, specify a list of column names.
-# MAGIC * `features_df`- Data to insert into this feature table.  The schema of `features_df` will be used as the feature table schema.
+# MAGIC * `primary_keys`- The primary key(s). If multiple columns are required, specify a list of column names.
+# MAGIC * `df`- Data to insert into this feature table.  The schema of `features_df` will be used as the feature table schema.
 # MAGIC * `schema`- Feature table schema. Note that either `schema` or `features_df` must be provided.
 # MAGIC * `description`- Description of the feature table
 # MAGIC * `partition_columns`- Column(s) used to partition the feature table.
 
 # COMMAND ----------
 
-fs.create_feature_table(
+fs.create_table(
     name=table_name,
-    keys=["index"],
-    features_df=airbnb_df,
+    primary_keys=["index"],
+    df=airbnb_df,
     partition_columns=["neighbourhood_cleansed"],
     description="Original Airbnb data"
 )
@@ -207,14 +207,14 @@ fs.create_feature_table(
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Alternatively, you can `create_feature_table` with schema only (without `features_df`), and populate data to the feature table with `fs.write_table`, `fs.write_table` has both `overwrite` and `merge` mode.
+# MAGIC Alternatively, you can `create_table` with schema only (without `df`), and populate data to the feature table with `fs.write_table`, `fs.write_table` has both `overwrite` and `merge` mode.
 # MAGIC 
 # MAGIC Example:
 # MAGIC 
 # MAGIC ```
-# MAGIC fs.create_feature_table(
+# MAGIC fs.create_table(
 # MAGIC     name=table_name,
-# MAGIC     keys=["index"],
+# MAGIC     primary_keys=["index"],
 # MAGIC     schema=airbnb_df.schema,
 # MAGIC     description="Original Airbnb data"
 # MAGIC )
@@ -246,12 +246,12 @@ fs.create_feature_table(
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC We can also look at the metadata of the feature store via the FeatureStore client by using `get_feature_table()`.
+# MAGIC We can also look at the metadata of the feature store via the FeatureStore client by using `get_table()`.
 
 # COMMAND ----------
 
-print(f"Feature table description : {fs.get_feature_table(table_name).description}")
-print(f"Feature table data source : {fs.get_feature_table(table_name).path_data_sources}")
+print(f"Feature table description : {fs.get_table(table_name).description}")
+print(f"Feature table data source : {fs.get_table(table_name).path_data_sources}")
 
 # COMMAND ----------
 
@@ -289,7 +289,7 @@ fs.write_table(
 
 # MAGIC %md By navigating back to the UI, we can again see that the modified date has changed and a new column has been added to the feature list. 
 # MAGIC 
-# MAGIC :NOTE: The deleted columns are still present in the schema of the table and their values have been replaced by `null`.
+# MAGIC <img src="https://files.training.databricks.com/images/icon_note_32.png"> The deleted columns are still present in the schema of the table and their values have been replaced by `null`.
 # MAGIC 
 # MAGIC <img src="https://files.training.databricks.com/images/mlflow/FS_New_Feature.png" alt="step12" width="800"/>
 
@@ -351,7 +351,7 @@ display(feature_df)
 # COMMAND ----------
 
 # MAGIC %md-sandbox
-# MAGIC &copy; 2021 Databricks, Inc. All rights reserved.<br/>
-# MAGIC Apache, Apache Spark, Spark and the Spark logo are trademarks of the <a href="http://www.apache.org/">Apache Software Foundation</a>.<br/>
+# MAGIC &copy; 2022 Databricks, Inc. All rights reserved.<br/>
+# MAGIC Apache, Apache Spark, Spark and the Spark logo are trademarks of the <a href="https://www.apache.org/">Apache Software Foundation</a>.<br/>
 # MAGIC <br/>
-# MAGIC <a href="https://databricks.com/privacy-policy">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use">Terms of Use</a> | <a href="http://help.databricks.com/">Support</a>
+# MAGIC <a href="https://databricks.com/privacy-policy">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use">Terms of Use</a> | <a href="https://help.databricks.com/">Support</a>

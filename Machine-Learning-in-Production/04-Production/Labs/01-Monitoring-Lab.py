@@ -39,7 +39,7 @@
 
 # COMMAND ----------
 
-df.head()
+df1.head()
 
 # COMMAND ----------
 
@@ -77,7 +77,7 @@ from scipy.spatial import distance
 
 class Monitor():
   
-    def __init__(self, pdf1, pdf2, cat_cols, num_cols, alpha=.05):
+    def __init__(self, pdf1, pdf2, cat_cols, num_cols, alpha=.05, js_stat_threshold=0.2):
         """
         Pass in two pandas dataframes with the same columns for two time windows
         List the categorical and numeric columns, and optionally provide an alpha level
@@ -85,9 +85,10 @@ class Monitor():
         assert (pdf1.columns == pdf2.columns).all(), "Columns do not match"
         self.pdf1 = pdf1
         self.pdf2 = pdf2
-        self.alpha = alpha
         self.categorical_columns = cat_cols
         self.continuous_columns = num_cols
+        self.alpha = alpha
+        self.js_stat_threshold = js_stat_threshold
     
     def run(self):
         """
@@ -95,6 +96,11 @@ class Monitor():
         """
         self.handle_numeric_js()
         self.handle_categorical()
+        
+        pdf1_nulls = self.pdf1.isnull().sum().sum()
+        pdf2_nulls = self.pdf2.isnull().sum().sum()
+        print(f"{pdf1_nulls} total null values found in pdf1 and {pdf2_nulls} in pdf2")
+        
   
     def handle_numeric_ks(self):
         """
@@ -108,6 +114,9 @@ class Monitor():
                 self.on_drift(num)
                 
     def handle_numeric_js(self):
+        """
+        Handles the numeric features with the Jensen Shannon (JS) test using the threshold attribute
+        """
         for num in self.continuous_columns:
             # Run test comparing old and new for that attribute
             range_min = min(self.pdf1[num].min(), self.pdf2[num].min())
@@ -115,19 +124,21 @@ class Monitor():
             base = np.histogram(self.pdf1[num], bins=20, range=(range_min, range_max))
             comp = np.histogram(self.pdf2[num], bins=20, range=(range_min, range_max))
             js_stat = distance.jensenshannon(base[0], comp[0], base=2)
-            if js_stat >= 0.3:
+            if js_stat >= self.js_stat_threshold:
                 self.on_drift(num)
-            
+      
     def handle_categorical(self):
         """
         Handle the Categorical features with Two-Way Chi-Squared Test with Bonferroni Correction
+        Note: null counts can skew the results of the Chi-Squared Test so they're currently dropped
+            by `.value_counts()`
         """
         corrected_alpha = self.alpha / len(self.categorical_columns)
 
         for feature in self.categorical_columns:
             pdf_count1 = pd.DataFrame(self.pdf1[feature].value_counts()).sort_index().rename(columns={feature:"pdf1"})
             pdf_count2 = pd.DataFrame(self.pdf2[feature].value_counts()).sort_index().rename(columns={feature:"pdf2"})
-            pdf_counts = pdf_count1.join(pdf_count2, how="outer").fillna(0)
+            pdf_counts = pdf_count1.join(pdf_count2, how="outer")#.fillna(0)
             obs = np.array([pdf_counts["pdf1"], pdf_counts["pdf2"]])
             _, p, _, _ = stats.chi2_contingency(obs)
             if p < corrected_alpha:
@@ -162,6 +173,7 @@ class Monitor():
         """
         print(f"Drift found in {feature}!")
 
+
 # COMMAND ----------
 
 # MAGIC %md Create a `Monitor` object based on our first and second period of ice cream data to identify drift. 
@@ -169,10 +181,12 @@ class Monitor():
 # COMMAND ----------
 
 drift_monitor = Monitor(
-  df,
+  df1,
   df2, 
   cat_cols = ["most_popular_ice_cream_flavor", "most_popular_sorbet_flavor"], 
-  num_cols = ["temperature", "number_of_cones_sold", "number_bowls_sold", "total_store_sales", "total_sales_predicted"]
+  num_cols = ["temperature", "number_of_cones_sold", "number_bowls_sold", "total_store_sales", "total_sales_predicted"],
+  alpha=.05, 
+  js_stat_threshold=0.2
 )
 
 # COMMAND ----------
@@ -180,11 +194,15 @@ drift_monitor = Monitor(
 # MAGIC %md 
 # MAGIC ### Summary Statistics
 # MAGIC 
-# MAGIC Look over and compare some of the data and their summary stats. Use the `drift_monitor` class to generate the null counts and percent changes. Does anything jump out at you?
+# MAGIC Look over and compare some of the data and their summary stats. Use the `drift_monitor` class to generate the null counts. Does anything jump out at you?
 
 # COMMAND ----------
 
 # TODO
+
+# COMMAND ----------
+
+# MAGIC %md Use the `drift_monitor` class to generate percent changes. Does anything jump out at you?
 
 # COMMAND ----------
 
@@ -217,7 +235,7 @@ drift_monitor = Monitor(
 # COMMAND ----------
 
 # MAGIC %md-sandbox
-# MAGIC &copy; 2021 Databricks, Inc. All rights reserved.<br/>
-# MAGIC Apache, Apache Spark, Spark and the Spark logo are trademarks of the <a href="http://www.apache.org/">Apache Software Foundation</a>.<br/>
+# MAGIC &copy; 2022 Databricks, Inc. All rights reserved.<br/>
+# MAGIC Apache, Apache Spark, Spark and the Spark logo are trademarks of the <a href="https://www.apache.org/">Apache Software Foundation</a>.<br/>
 # MAGIC <br/>
-# MAGIC <a href="https://databricks.com/privacy-policy">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use">Terms of Use</a> | <a href="http://help.databricks.com/">Support</a>
+# MAGIC <a href="https://databricks.com/privacy-policy">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use">Terms of Use</a> | <a href="https://help.databricks.com/">Support</a>

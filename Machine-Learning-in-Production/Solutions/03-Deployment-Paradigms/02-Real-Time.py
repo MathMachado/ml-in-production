@@ -17,7 +17,7 @@
 # MAGIC  - Deploy registered models using MLflow Model Serving
 # MAGIC  - Query an MLflow Model Serving endpoint for inference using individual records and batch requests
 # MAGIC  
-# MAGIC :NOTE: *You need [cluster creation](https://docs.databricks.com/applications/mlflow/model-serving.html#requirements) permissions to create a model serving endpoint. The instructor will either demo this notebook or enable cluster creation permission for the students from the Admin console.*
+# MAGIC <img src="https://files.training.databricks.com/images/icon_note_32.png"> *You need [cluster creation](https://docs.databricks.com/applications/mlflow/model-serving.html#requirements) permissions to create a model serving endpoint. The instructor will either demo this notebook or enable cluster creation permission for the students from the Admin console.*
 
 # COMMAND ----------
 
@@ -58,7 +58,8 @@
 # MAGIC 
 # MAGIC * A managed solution 
 # MAGIC   - Azure ML
-# MAGIC   - SageMaker
+# MAGIC   - SageMaker (AWS)
+# MAGIC   - VertexAI (GCP)
 # MAGIC * A custom solution  
 # MAGIC   - Involve deployments using a range of tools
 # MAGIC   - Often using Docker or Kubernetes
@@ -273,9 +274,24 @@ instance = tags["browserHostName"]
 
 # COMMAND ----------
 
-def score_model(dataset: pd.DataFrame):
-    import requests
+# MAGIC %md Enable the endpoint
 
+# COMMAND ----------
+
+import requests
+
+url = f"https://{instance}/api/2.0/mlflow/endpoints/enable"
+
+r = requests.post(url, headers=headers, json={"registered_model_name": model_name})
+assert r.status_code == 200, f"Expected an HTTP 200 response, received {r.status_code}"
+
+# COMMAND ----------
+
+# MAGIC %md Define the `score_model` function.
+
+# COMMAND ----------
+
+def score_model(dataset: pd.DataFrame):
     url = f"https://{instance}/model/{model_name}/1/invocations"
     data_json = dataset.to_dict(orient="split")
     response = requests.request(method="POST", headers=headers, url=url, json=data_json)
@@ -295,7 +311,7 @@ score_model(X_test)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC You can also optionally transition the model to `staging` or `production` stage, using [MLflow Model Registry](https://www.mlflow.org/docs/latest/model-registry.html#transitioning-an-mlflow-models-stage). 
+# MAGIC You can also optionally transition the model to the `Staging` or `Production` stage, using [MLflow Model Registry](https://www.mlflow.org/docs/latest/model-registry.html#transitioning-an-mlflow-models-stage). 
 # MAGIC 
 # MAGIC Sample code is below:
 # MAGIC ```
@@ -364,13 +380,85 @@ score_model(X_test)
 # MAGIC   - Azure Machine Learning endpoints (currently in preview)
 # MAGIC - Note that when you're deploying your model on Azure, you'll need to connect the [MLflow Tracking URI](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-use-mlflow) from your Databricks Workspace to your AzureML workspace. Once the connection has been created, experiments can be tracked across the two. 
 # MAGIC 
-# MAGIC ** Tip:`azureml-mlflow` will need to be installed on the cluster as it is *not* included in the 9.1 ML LTS runtime ** 
+# MAGIC ** Tip:`azureml-mlflow` will need to be installed on the cluster as it is *not* included in the ML runtime ** 
 
 # COMMAND ----------
 
-# MAGIC %md ## GCP
+# MAGIC %md-sandbox 
+# MAGIC ## GCP
 # MAGIC 
-# MAGIC At this time, there is no seamless integration between GCP Databricks and [Vertex AI](https://cloud.google.com/vertex-ai). You'll need to export the model out of the Databricks workspace and import it into Vertex AI.
+# MAGIC GCP users can train their models on GCP Databricks workspace, log their trained model to MLFlow Model Registry, then deploy production-ready models to [Vertex AI](https://cloud.google.com/vertex-ai) and create model-serving endpoint. You need to set up your GCP service account and install MLflow plugin for Google Cloud (`%pip install google_cloud_mlflow`).
+# MAGIC 
+# MAGIC ####**To set up GCP service account**:
+# MAGIC - Create a GCP project, see intructions [here](https://cloud.google.com/apis/docs/getting-started). You can use the project that the Databricks workspace belongs to.
+# MAGIC - Enable Vertex AI and Cloud Build APIs of your GCP project
+# MAGIC - Create a service account with the following minimum IAM permissions (see instructions [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts)) to load Mlflow models from GCS, build containers, and deploy the container into a Vertex AI endpoint:
+# MAGIC 
+# MAGIC ```
+# MAGIC cloudbuild.builds.create
+# MAGIC cloudbuild.builds.get
+# MAGIC storage.objects.create
+# MAGIC storage.buckets.create
+# MAGIC storage.buckets.get
+# MAGIC aiplatform.endpoints.create
+# MAGIC aiplatform.endpoints.deploy
+# MAGIC aiplatform.endpoints.get
+# MAGIC aiplatform.endpoints.list
+# MAGIC aiplatform.endpoints.predict
+# MAGIC aiplatform.models.get
+# MAGIC aiplatform.models.upload
+# MAGIC ```
+# MAGIC 
+# MAGIC 
+# MAGIC - Create a cluster and attach the service account to your cluster. Compute --> Create Cluster --> (After normal configurations are done) Advanced options --> Google Service Account --> type in your Service Account email --> start cluster
+# MAGIC 
+# MAGIC <img src="https://files.training.databricks.com/images/mlflow/gcp_image_2.png" style="height: 700px; margin: 10px"/>
+# MAGIC 
+# MAGIC 
+# MAGIC ####**Create an endpoint of a logged model with the MLflow and GCP python API**
+# MAGIC - Install the following libraries in a notebook:
+# MAGIC ```
+# MAGIC %pip install google_cloud_mlflow
+# MAGIC %pip install google-cloud-aiplatform
+# MAGIC ```
+# MAGIC 
+# MAGIC - Deployment
+# MAGIC 
+# MAGIC ```
+# MAGIC import mlflow
+# MAGIC from mlflow.deployments import get_deploy_client
+# MAGIC 
+# MAGIC vtx_client = mlflow.deployments.get_deploy_client("google_cloud") # Instantiate VertexAI client
+# MAGIC deploy_name = <enter-your-deploy-name>
+# MAGIC model_uri = <enter-your-mlflow-model-uri>
+# MAGIC deployment = vtx_client.create_deployment(
+# MAGIC     name=deploy_name,
+# MAGIC     model_uri=model_uri,
+# MAGIC     # config={}   # set deployment configurations, see an example: https://pypi.org/project/google-cloud-mlflow/
+# MAGIC     )
+# MAGIC ```
+# MAGIC The code above will do the heavy lifting depolyment, i.e. export the model from MLflow to Google Storage, imports the model from Google Storage, and generates the image in VertexAI. **It might take 20 mins for the whole deployment to complete.** 
+# MAGIC 
+# MAGIC **Note:**
+# MAGIC - If `destination_image_uri` is not set, then `gcr.io/<your-project-id>/mlflow/<deploy_name>` will be used
+# MAGIC - Your service account must have access to that storage location in Cloud Build
+# MAGIC 
+# MAGIC #### Get predictions from the endpoint
+# MAGIC 
+# MAGIC - First, retrieve your endpoint:
+# MAGIC ```
+# MAGIC deployments = vtx_client.list_deployments()
+# MAGIC endpt = [d["resource_name"] for d in deployments if d["name"] == deploy_name][0]
+# MAGIC ```
+# MAGIC 
+# MAGIC - Then use `aiplatform` module from `google.cloud` to query the generated endpoint. 
+# MAGIC ```
+# MAGIC from google.cloud import aiplatform
+# MAGIC aiplatform.init()
+# MAGIC vtx_endpoint = aiplatform.Endpoint(endpt_resource)
+# MAGIC arr = X_test.tolist() ## X_test is an array
+# MAGIC pred = vtx_endpoint.predict(instances=arr)
+# MAGIC ```
 
 # COMMAND ----------
 
@@ -406,7 +494,7 @@ score_model(X_test)
 # COMMAND ----------
 
 # MAGIC %md-sandbox
-# MAGIC &copy; 2021 Databricks, Inc. All rights reserved.<br/>
-# MAGIC Apache, Apache Spark, Spark and the Spark logo are trademarks of the <a href="http://www.apache.org/">Apache Software Foundation</a>.<br/>
+# MAGIC &copy; 2022 Databricks, Inc. All rights reserved.<br/>
+# MAGIC Apache, Apache Spark, Spark and the Spark logo are trademarks of the <a href="https://www.apache.org/">Apache Software Foundation</a>.<br/>
 # MAGIC <br/>
-# MAGIC <a href="https://databricks.com/privacy-policy">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use">Terms of Use</a> | <a href="http://help.databricks.com/">Support</a>
+# MAGIC <a href="https://databricks.com/privacy-policy">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use">Terms of Use</a> | <a href="https://help.databricks.com/">Support</a>

@@ -59,6 +59,7 @@ rf_model.fit(X_train, y_train)
 
 # ANSWER
 import mlflow
+
 # Define the model class
 class RFWithPostprocess(mlflow.pyfunc.PythonModel):
 
@@ -83,22 +84,15 @@ class RFWithPostprocess(mlflow.pyfunc.PythonModel):
 
 # COMMAND ----------
 
-import shutil
-
-model_path = working_dir.replace("dbfs:", "/dbfs")
-try:
-    shutil.rmtree(model_path) # remove folder if already exists
-except:
-    None
-
 # Construct model
-model_path =  working_dir.replace("dbfs:", "/dbfs")
 rf_postprocess_model = RFWithPostprocess(trained_rf=rf_model)
 
-# Save model
-mlflow.pyfunc.save_model(path=model_path, python_model=rf_postprocess_model)
+# log model
+with mlflow.start_run() as run:
+    mlflow.pyfunc.log_model("rf_postprocess_model", python_model=rf_postprocess_model)
 
 # Load the model in `python_function` format
+model_path = f"runs:/{run.info.run_id}/rf_postprocess_model"
 loaded_postprocess_model = mlflow.pyfunc.load_model(model_path)
 
 # Apply the model
@@ -115,7 +109,7 @@ loaded_postprocess_model.predict(X_test)
 # COMMAND ----------
 
 # MAGIC %md-sandbox
-# MAGIC &copy; 2021 Databricks, Inc. All rights reserved.<br/>
-# MAGIC Apache, Apache Spark, Spark and the Spark logo are trademarks of the <a href="http://www.apache.org/">Apache Software Foundation</a>.<br/>
+# MAGIC &copy; 2022 Databricks, Inc. All rights reserved.<br/>
+# MAGIC Apache, Apache Spark, Spark and the Spark logo are trademarks of the <a href="https://www.apache.org/">Apache Software Foundation</a>.<br/>
 # MAGIC <br/>
-# MAGIC <a href="https://databricks.com/privacy-policy">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use">Terms of Use</a> | <a href="http://help.databricks.com/">Support</a>
+# MAGIC <a href="https://databricks.com/privacy-policy">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use">Terms of Use</a> | <a href="https://help.databricks.com/">Support</a>

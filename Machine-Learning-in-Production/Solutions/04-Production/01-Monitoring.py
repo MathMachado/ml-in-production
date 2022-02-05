@@ -379,7 +379,19 @@ pdf2["neighbourhood_cleansed"] = pdf2["neighbourhood_cleansed"].map(lambda x: No
 
 # MAGIC %md ## Apply Summary Stats
 # MAGIC 
-# MAGIC Start by looking at the summary statistics for the distribution of data in the two datasets. 
+# MAGIC Start by looking at the summary statistics for the distribution of data in the two datasets with `dbutils.data.summarize`
+
+# COMMAND ----------
+
+dbutils.data.summarize(pdf1)
+
+# COMMAND ----------
+
+dbutils.data.summarize(pdf2)
+
+# COMMAND ----------
+
+# MAGIC %md It might be difficult to spot the differences in distribution across the summary plots, so let's visualize the percent change in summary statistics. 
 
 # COMMAND ----------
 
@@ -523,6 +535,11 @@ class Monitor():
         """
         self.handle_numeric_js()
         self.handle_categorical()
+        
+        pdf1_nulls = self.pdf1.isnull().sum().sum()
+        pdf2_nulls = self.pdf2.isnull().sum().sum()
+        print(f"{pdf1_nulls} total null values found in pdf1 and {pdf2_nulls} in pdf2")
+        
   
     def handle_numeric_ks(self):
         """
@@ -536,6 +553,9 @@ class Monitor():
                 self.on_drift(num)
                 
     def handle_numeric_js(self):
+        """
+        Handles the numeric features with the Jensen Shannon (JS) test using the threshold attribute
+        """
         for num in self.continuous_columns:
             # Run test comparing old and new for that attribute
             range_min = min(self.pdf1[num].min(), self.pdf2[num].min())
@@ -549,13 +569,15 @@ class Monitor():
     def handle_categorical(self):
         """
         Handle the Categorical features with Two-Way Chi-Squared Test with Bonferroni Correction
+        Note: null counts can skew the results of the Chi-Squared Test so they're currently dropped
+            by `.value_counts()`
         """
         corrected_alpha = self.alpha / len(self.categorical_columns)
 
         for feature in self.categorical_columns:
             pdf_count1 = pd.DataFrame(self.pdf1[feature].value_counts()).sort_index().rename(columns={feature:"pdf1"})
             pdf_count2 = pd.DataFrame(self.pdf2[feature].value_counts()).sort_index().rename(columns={feature:"pdf2"})
-            pdf_counts = pdf_count1.join(pdf_count2, how="outer").fillna(0)
+            pdf_counts = pdf_count1.join(pdf_count2, how="outer")#.fillna(0)
             obs = np.array([pdf_counts["pdf1"], pdf_counts["pdf2"]])
             _, p, _, _ = stats.chi2_contingency(obs)
             if p < corrected_alpha:
@@ -677,7 +699,7 @@ drift_monitor.generate_null_counts()
 # COMMAND ----------
 
 # MAGIC %md-sandbox
-# MAGIC &copy; 2021 Databricks, Inc. All rights reserved.<br/>
-# MAGIC Apache, Apache Spark, Spark and the Spark logo are trademarks of the <a href="http://www.apache.org/">Apache Software Foundation</a>.<br/>
+# MAGIC &copy; 2022 Databricks, Inc. All rights reserved.<br/>
+# MAGIC Apache, Apache Spark, Spark and the Spark logo are trademarks of the <a href="https://www.apache.org/">Apache Software Foundation</a>.<br/>
 # MAGIC <br/>
-# MAGIC <a href="https://databricks.com/privacy-policy">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use">Terms of Use</a> | <a href="http://help.databricks.com/">Support</a>
+# MAGIC <a href="https://databricks.com/privacy-policy">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use">Terms of Use</a> | <a href="https://help.databricks.com/">Support</a>
