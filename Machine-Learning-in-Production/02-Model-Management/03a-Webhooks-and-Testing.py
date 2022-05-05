@@ -206,16 +206,16 @@ def find_job_id(instance, headers, job_name, offset_limit=1000):
     return job_id
 
 def get_job_parameters(job_name, cluster_id, notebook_path):
-    params = {
-            "name": job_name,
-            "tasks": [{"task_key": "webhook_task", 
-                       "existing_cluster_id": cluster_id,
-                       "notebook_task": {
-                           "notebook_path": notebook_path
-                       }
-                      }]
-        }
-    return params
+    return {
+        "name": job_name,
+        "tasks": [
+            {
+                "task_key": "webhook_task",
+                "existing_cluster_id": cluster_id,
+                "notebook_task": {"notebook_path": notebook_path},
+            }
+        ],
+    }
 
 def get_create_parameters(job_name, cluster_id, notebook_path):
     api = "api/2.1/jobs/create"
@@ -317,7 +317,7 @@ print(response.json())
 
 delete_hook = "<insert your webhook id here>"
 new_json = {"id": delete_hook}
-endpoint = f"/api/2.0/mlflow/registry-webhooks/delete"
+endpoint = "/api/2.0/mlflow/registry-webhooks/delete"
 
 response = http_request(
     host_creds=host_creds, 

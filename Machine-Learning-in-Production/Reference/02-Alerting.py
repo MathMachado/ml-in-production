@@ -87,8 +87,12 @@ def post_api_endpoint(content, webhook=""):
     t = Template("{'text': '${content}'}")
 
     try:
-        response = requests.post(webhook, data=t.substitute(content=content), headers={"Content-Type": "application/json"})
-        return response
+        return requests.post(
+            webhook,
+            data=t.substitute(content=content),
+            headers={"Content-Type": "application/json"},
+        )
+
     except MissingSchema:
         print("Please define an appropriate API endpoint use by defining the `webhook` argument")
 

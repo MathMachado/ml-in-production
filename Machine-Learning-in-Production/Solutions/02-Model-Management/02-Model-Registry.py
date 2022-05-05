@@ -265,7 +265,10 @@ with mlflow.start_run(run_name="RF Model") as run:
 # COMMAND ----------
 
 model_version_infos = client.search_model_versions(f"name = '{model_name}'")
-new_model_version = max([model_version_info.version for model_version_info in model_version_infos])
+new_model_version = max(
+    model_version_info.version for model_version_info in model_version_infos
+)
+
 print(f"New model version: {new_model_version}")
 
 # COMMAND ----------

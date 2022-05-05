@@ -31,7 +31,7 @@ from pyspark.ml.feature import StringIndexer, VectorAssembler
 from pyspark.ml import Pipeline
 
 categorical_cols = [field for (field, dataType) in df.dtypes if dataType == "string"]
-index_output_cols = [x + "_index" for x in categorical_cols]
+index_output_cols = [f"{x}_index" for x in categorical_cols]
 
 string_indexer = StringIndexer(inputCols=categorical_cols, outputCols=index_output_cols, handleInvalid="skip")
 

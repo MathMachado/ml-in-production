@@ -179,10 +179,8 @@ def objective(params):
                                   min_samples_split=int(params["min_samples_split"]))
     model.fit(X_train, y_train)
     pred = model.predict(X_train)
-    score = mean_squared_error(pred, y_train)
-
-    # Hyperopt minimizes score, here we minimize mse. 
-    return score
+    # Hyperopt minimizes score, here we minimize mse.
+    return mean_squared_error(pred, y_train)
 
 # COMMAND ----------
 

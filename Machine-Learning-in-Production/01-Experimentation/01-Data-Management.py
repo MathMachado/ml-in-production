@@ -164,7 +164,7 @@ display(spark.sql(f"DESCRIBE HISTORY delta.`{working_dir}`"))
 import uuid
 
 spark.sql(f"CREATE DATABASE IF NOT EXISTS {clean_username}")
-table_name = f"{clean_username}.airbnb_" + str(uuid.uuid4())[:6]
+table_name = f"{clean_username}.airbnb_{str(uuid.uuid4())[:6]}"
 
 print(table_name)
 

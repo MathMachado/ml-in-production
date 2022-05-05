@@ -131,9 +131,7 @@ def objective(params):
     # predict on testing data
     pred = model.predict(X_test)
 
-    # compute mean squared error
-    score = mean_squared_error(pred, y_test)
-    return score
+    return mean_squared_error(pred, y_test)
 
 # COMMAND ----------
 
