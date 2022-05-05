@@ -204,7 +204,7 @@ def until_stream_is_ready(name, progressions=3):
     queries = list(filter(lambda query: query.name == name, spark.streams.active))
 
     # We need the query to exist, and progress to be >= "progressions"
-    while (len(queries) == 0 or len(queries[0].recentProgress) < progressions):
+    while not queries or len(queries[0].recentProgress) < progressions:
         time.sleep(5) # Give it a couple of seconds
         queries = list(filter(lambda query: query.name == name, spark.streams.active))
 

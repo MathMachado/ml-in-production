@@ -2,9 +2,10 @@
 def get_cloud():
   with open("/databricks/common/conf/deploy.conf") as f:
     for line in f:
-      if "databricks.instance.metadata.cloudProvider" in line and "\"GCP\"" in line: return "GCP"
-      elif "databricks.instance.metadata.cloudProvider" in line and "\"AWS\"" in line: return "AWS"
-      elif "databricks.instance.metadata.cloudProvider" in line and "\"Azure\"" in line: return "MSA"
+      if "databricks.instance.metadata.cloudProvider" in line:
+        if "\"GCP\"" in line: return "GCP"
+        elif "\"AWS\"" in line: return "AWS"
+        elif "\"Azure\"" in line: return "MSA"
 
 #############################################
 # TAG API FUNCTIONS
@@ -38,7 +39,7 @@ def getDbrMajorAndMinorVersions() -> (int, int):
 # Get Python version
 def getPythonVersion() -> str:
   import sys
-  pythonVersion = sys.version[0:sys.version.index(" ")]
+  pythonVersion = sys.version[:sys.version.index(" ")]
   spark.conf.set("com.databricks.training.python-version", pythonVersion)
   return pythonVersion
 
@@ -61,7 +62,7 @@ def getCleanUsername() -> str:
 # Get the user's userhome
 def getUserhome() -> str:
   username = getUsername()
-  return "dbfs:/user/{}".format(username)
+  return f"dbfs:/user/{username}"
 
 def getModuleName() -> str: 
   # This will/should fail if module-name is not defined in the Classroom-Setup notebook

@@ -31,11 +31,9 @@ None # Suppress output
 # Used to initialize MLflow with the job ID when ran under test
 def init_mlflow_as_job():
   import mlflow
-  job_experiment_id = sc._jvm.scala.collection.JavaConversions.mapAsJavaMap(
-      dbutils.entry_point.getDbutils().notebook().getContext().tags()
-    )["jobId"]
-
-  if job_experiment_id:
+  if job_experiment_id := sc._jvm.scala.collection.JavaConversions.mapAsJavaMap(
+      dbutils.entry_point.getDbutils().notebook().getContext().tags(
+      ))["jobId"]:
     mlflow.set_experiment(f"/Curriculum/Test Results/Experiments/{job_experiment_id}")
     
 init_mlflow_as_job()

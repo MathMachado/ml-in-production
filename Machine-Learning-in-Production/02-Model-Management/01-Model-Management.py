@@ -193,9 +193,6 @@ class RFWithPreprocess(mlflow.pyfunc.PythonModel):
         """
         if context: # This block executes for server run
             config_path = context.artifacts["config_path"]
-        else: # This block executes for notebook run
-            pass
-
         self.config = json.load(open(config_path))
       
     def preprocess_input(self, model_input):

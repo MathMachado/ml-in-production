@@ -158,8 +158,7 @@ def get_truncated_normal(mean=0, sd=1, low=0.2, upp=0.8, n_size=1000, seed=999):
 
     a = (low-mean) / sd
     b = (upp-mean) / sd
-    distb = truncnorm(a, b, loc=mean, scale=sd).rvs(n_size, random_state=seed)
-    return distb
+    return truncnorm(a, b, loc=mean, scale=sd).rvs(n_size, random_state=seed)
 
 def calculate_ks(distibution_1, distibution_2):
     """
